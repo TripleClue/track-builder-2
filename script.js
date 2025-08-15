@@ -14,27 +14,11 @@ class TrackBuilder {
         this.draggedElementSource = null; // 'toolbar' or 'grid'
         this.draggedElementData = null;
         
-        // Mobile rotation debounce
-        this.lastRotationTime = 0;
-        this.rotationDebounceDelay = 300; // milliseconds
-        
-        // Touch event processing flags
-        this.touchProcessed = false;
-        
-        // Double tap detection
+        // Double tap detection for deletion
         this.lastTapTime = 0;
         this.lastTapPosition = { x: 0, y: 0 };
         this.doubleTapDelay = 300; // milliseconds
         this.doubleTapDistance = 50; // pixels
-        
-        // Per-element rotation tracking to prevent double rotation
-        this.elementRotationTimes = new Map();
-        
-        // Global touch lock to prevent multiple simultaneous touch events
-        this.globalTouchLock = false;
-        
-        // Simple rotation lock to prevent double rotation
-        this.isRotating = false;
         
         this.initializeEventListeners();
         
@@ -271,154 +255,24 @@ class TrackBuilder {
         this.draggedElementSource = null;
         this.draggedElementData = null;
         this.isDragging = false;
-        this.touchProcessed = false; // Reset touch processed flag
-        
-        // Release global touch lock
-        this.globalTouchLock = false;
-        console.log('Global touch lock released');
     }
 
-    // Cell touch handling methods
-    handleCellTouchStart(e, row, col) {
-        const touch = e.touches[0];
-        this.touchStartTime = Date.now();
-        this.touchStartPosition = { x: touch.clientX, y: touch.clientY };
-        this.touchProcessed = false; // Reset touch processed flag
-        
-        // Check if cell has an element
-        const element = this.grid[row][col].querySelector('.track-element');
-        if (element) {
-            // Store element info for potential drag
-            this.draggedElementType = element.classList[1];
-            this.draggedElementSource = 'grid';
-            this.draggedElementData = `move:${row}:${col}:${this.draggedElementType}`;
-        }
-    }
-
-    handleCellTouchMove(e, row, col) {
-        if (!this.draggedElementType || this.draggedElementSource !== 'grid') return;
-        
-        e.preventDefault();
-        const touch = e.touches[0];
-        const deltaX = Math.abs(touch.clientX - this.touchStartPosition.x);
-        const deltaY = Math.abs(touch.clientY - this.touchStartPosition.y);
-        
-        // Start dragging after a small movement threshold
-        if (deltaX > 10 || deltaY > 10) {
-            this.isDragging = true;
-            
-            // Create drag preview if not exists
-            if (!this.draggedElement) {
-                this.createTouchDragPreview();
-            }
-            
-            // Update drag preview position
-            if (this.draggedElement) {
-                this.draggedElement.style.left = (touch.clientX - 40) + 'px';
-                this.draggedElement.style.top = (touch.clientY - 40) + 'px';
-            }
-        }
-    }
-
-    handleCellTouchEnd(e, row, col) {
-        if (!this.draggedElementType || this.touchProcessed) return;
-        
-        const touch = e.changedTouches[0];
-        const touchDuration = Date.now() - this.touchStartTime;
-        
-        if (this.isDragging) {
-            // Handle drag and drop
-            const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-            const targetCell = this.findCellFromElement(elementBelow);
-            
-            if (targetCell && this.draggedElementSource === 'grid') {
-                const targetRow = parseInt(targetCell.dataset.row);
-                const targetCol = parseInt(targetCell.dataset.col);
-                const [, oldRow, oldCol] = this.draggedElementData.split(':');
-                
-                if (parseInt(oldRow) !== targetRow || parseInt(oldCol) !== targetCol) {
-                    this.moveElement(parseInt(oldRow), parseInt(oldCol), targetRow, targetCol, this.draggedElementType);
-                }
-            }
-        } else if (touchDuration < 500) {
-            // Short touch - handle rotation or deletion
-            const element = this.grid[row][col].querySelector('.track-element');
-            if (element) {
-                // Check if it's a long press (for deletion) or short tap (for rotation)
-                if (touchDuration > 300) {
-                    // Long press - show delete button (mobile only)
-                    if (this.isMobileDevice()) {
-                        this.showDeleteButton(row, col);
-                    } else {
-                        // Desktop behavior - immediate deletion
-                        this.deleteElement(row, col);
-                    }
-                } else {
-                    // Short tap - rotate
-                    this.rotateElement(row, col);
-                }
-            }
-        }
-        
-        // Mark touch as processed to prevent multiple firings
-        this.touchProcessed = true;
-        
-        // Clean up
-        this.cleanupTouchDrag();
-    }
+    // Old cell touch handling methods removed - now using simple element-level touch events
 
     // Element touch handling methods for placed elements
     handleElementTouchStart(e, row, col) {
-        console.log('Element touch start:', { row, col });
-        
-        // Prevent any other touch events from firing
         e.preventDefault();
         e.stopPropagation();
-        
-        // Check global touch lock
-        if (this.globalTouchLock) {
-            console.log('Touch start blocked - global lock active');
-            return;
-        }
-        
-        // Check if this element is already being processed
-        const elementKey = `${row},${col}`;
-        if (this.elementRotationTimes.has(elementKey)) {
-            const timeSinceLastRotation = Date.now() - this.elementRotationTimes.get(elementKey);
-            if (timeSinceLastRotation < 1000) {
-                console.log('Touch start blocked - element is locked');
-                return;
-            }
-        }
-        
-        // Set global touch lock
-        this.globalTouchLock = true;
-        console.log('Global touch lock activated');
-        
-        // Safety timeout to release lock after 2 seconds
-        setTimeout(() => {
-            if (this.globalTouchLock) {
-                this.globalTouchLock = false;
-                console.log('Global touch lock released by safety timeout');
-            }
-        }, 2000);
         
         const touch = e.touches[0];
         this.touchStartTime = Date.now();
         this.touchStartPosition = { x: touch.clientX, y: touch.clientY };
-        this.touchProcessed = false; // Reset touch processed flag
         
         // Store element info for potential drag
         const element = e.currentTarget;
         this.draggedElementType = element.classList[1];
         this.draggedElementSource = 'grid';
         this.draggedElementData = `move:${row}:${col}:${this.draggedElementType}`;
-        
-        console.log('Touch start initialized:', { 
-            draggedElementType: this.draggedElementType, 
-            draggedElementSource: this.draggedElementSource,
-            touchProcessed: this.touchProcessed 
-        });
     }
 
     handleElementTouchMove(e, row, col) {
@@ -441,18 +295,13 @@ class TrackBuilder {
             // Update drag preview position
             if (this.draggedElement) {
                 this.draggedElement.style.left = (touch.clientX - 40) + 'px';
-                this.draggedElement.style.width = '80px';
-                this.draggedElement.style.height = '80px';
                 this.draggedElement.style.top = (touch.clientY - 40) + 'px';
             }
         }
     }
 
     handleElementTouchEnd(e, row, col) {
-        if (!this.draggedElementType || this.touchProcessed) {
-            console.log('Touch event blocked:', { draggedElementType: this.draggedElementType, touchProcessed: this.touchProcessed });
-            return;
-        }
+        if (!this.draggedElementType) return;
         
         // Prevent any other touch events from firing
         e.preventDefault();
@@ -461,7 +310,7 @@ class TrackBuilder {
         const touch = e.changedTouches[0];
         const touchDuration = Date.now() - this.touchStartTime;
         
-        console.log('Element touch end:', { row, col, touchDuration, isDragging: this.isDragging });
+
         
         if (this.isDragging) {
             // Handle drag and drop
@@ -485,11 +334,9 @@ class TrackBuilder {
             } else {
                 // Desktop: long press for deletion
                 if (touchDuration > 300) {
-                    console.log('Long press detected, deleting element');
                     this.deleteElement(row, col);
                 } else {
                     // Short tap - rotate
-                    console.log('Short tap detected, rotating element');
                     this.rotateElement(row, col);
                 }
             }
@@ -509,16 +356,8 @@ class TrackBuilder {
             Math.pow(touch.clientY - this.lastTapPosition.y, 2)
         );
         
-        console.log('Mobile tap detected:', { 
-            row, col, 
-            timeSinceLastTap: now - this.lastTapTime, 
-            distance, 
-            isDoubleTap: (now - this.lastTapTime < this.doubleTapDelay) && (distance < this.doubleTapDistance)
-        });
-        
         if (now - this.lastTapTime < this.doubleTapDelay && distance < this.doubleTapDistance) {
             // Double tap detected - delete element
-            console.log('Double tap detected, deleting element');
             this.deleteElement(row, col);
             
             // Reset double tap tracking
@@ -526,7 +365,6 @@ class TrackBuilder {
             this.lastTapPosition = { x: 0, y: 0 };
         } else {
             // Single tap - rotate element
-            console.log('Single tap detected, rotating element');
             this.rotateElement(row, col);
             
             // Update last tap info for potential double tap
@@ -551,84 +389,7 @@ class TrackBuilder {
         }, 1000);
     }
 
-    showDeleteButton(row, col) {
-        console.log('Showing delete button for:', { row, col });
-        const cell = this.grid[row][col];
-        
-        // Remove any existing delete button
-        const existingButton = cell.querySelector('.mobile-delete-button');
-        if (existingButton) {
-            console.log('Removing existing delete button');
-            existingButton.remove();
-            return;
-        }
-        
-        console.log('Creating new delete button');
-        
-        // Create delete button
-        const deleteButton = document.createElement('button');
-        deleteButton.className = 'mobile-delete-button';
-        deleteButton.innerHTML = '×';
-        deleteButton.style.cssText = `
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            width: 24px;
-            height: 24px;
-            background: #f44336;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            z-index: 10;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            animation: popIn 0.2s ease-out;
-        `;
-        
-        // Add hover effect for desktop
-        deleteButton.addEventListener('mouseenter', () => {
-            deleteButton.style.background = '#d32f2f';
-            deleteButton.style.transform = 'scale(1.1)';
-        });
-        
-        deleteButton.addEventListener('mouseleave', () => {
-            deleteButton.style.background = '#f44336';
-            deleteButton.style.transform = 'scale(1)';
-        });
-        
-        // Add click event to delete
-        deleteButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            console.log('Delete button clicked');
-            this.deleteElement(row, col);
-        });
-        
-        // Add touch event to delete (for mobile)
-        deleteButton.addEventListener('touchend', (e) => {
-            e.stopPropagation();
-            console.log('Delete button touched');
-            this.deleteElement(row, col);
-        });
-        
-        // Position the button relative to the cell
-        cell.style.position = 'relative';
-        cell.appendChild(deleteButton);
-        
-        console.log('Delete button added to cell');
-        
-        // Auto-hide the button after 5 seconds
-        setTimeout(() => {
-            if (deleteButton.parentNode) {
-                console.log('Auto-hiding delete button');
-                deleteButton.remove();
-            }
-        }, 5000);
-    }
+    // showDeleteButton method removed - not needed for simple double-tap deletion
 
     createGrid() {
         const gridContainer = document.getElementById('trackGrid');
@@ -1087,48 +848,20 @@ class TrackBuilder {
     }
 
     rotateElement(row, col) {
-        console.log('Rotating element at:', { row, col });
-        
-        // Simple rotation lock check
-        if (this.isRotating) {
-            console.log('Rotation blocked - already rotating');
-            return;
-        }
-        
         const elementData = this.elements.get(`${row},${col}`);
-        if (!elementData) {
-            console.log('No element data found');
-            return;
-        }
+        if (!elementData) return;
         
-        // Set rotation lock
-        this.isRotating = true;
-        console.log('Rotation lock set');
-        
-        console.log('Current rotation:', elementData.rotation);
-        
-        // Always rotate clockwise in 90-degree increments
+        // Rotate 90 degrees clockwise
         elementData.rotation += 90;
-        
-        console.log('New rotation:', elementData.rotation);
         
         const cell = this.grid[row][col];
         const element = cell.querySelector('.track-element');
         if (element) {
             element.style.transform = `rotate(${elementData.rotation}deg)`;
-            console.log('Applied transform:', element.style.transform);
         }
         
         // Update stored data
         this.elements.set(`${row},${col}`, elementData);
-        
-        // Release rotation lock after a short delay
-        setTimeout(() => {
-            this.isRotating = false;
-            console.log('Rotation lock released');
-        }, 500);
-        
-        console.log('Rotation completed');
     }
 
     clearGrid() {
