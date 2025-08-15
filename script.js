@@ -27,6 +27,9 @@ class TrackBuilder {
         this.doubleTapDelay = 300; // milliseconds
         this.doubleTapDistance = 50; // pixels
         
+        // Per-element rotation tracking to prevent double rotation
+        this.elementRotationTimes = new Map();
+        
         this.initializeEventListeners();
         
         // Read initial values from HTML inputs
@@ -357,6 +360,11 @@ class TrackBuilder {
     // Element touch handling methods for placed elements
     handleElementTouchStart(e, row, col) {
         console.log('Element touch start:', { row, col });
+        
+        // Prevent any other touch events from firing
+        e.preventDefault();
+        e.stopPropagation();
+        
         const touch = e.touches[0];
         this.touchStartTime = Date.now();
         this.touchStartPosition = { x: touch.clientX, y: touch.clientY };
@@ -407,6 +415,10 @@ class TrackBuilder {
             console.log('Touch event blocked:', { draggedElementType: this.draggedElementType, touchProcessed: this.touchProcessed });
             return;
         }
+        
+        // Prevent any other touch events from firing
+        e.preventDefault();
+        e.stopPropagation();
         
         const touch = e.changedTouches[0];
         const touchDuration = Date.now() - this.touchStartTime;
@@ -477,7 +489,18 @@ class TrackBuilder {
         } else {
             // Single tap - rotate element
             console.log('Single tap detected, rotating element');
-            this.rotateElement(row, col);
+            
+            // Check if we've already rotated this element recently
+            const elementKey = `${row},${col}`;
+            const lastElementRotationTime = this.elementRotationTimes.get(elementKey) || 0;
+            
+            if (now - lastElementRotationTime > 800) { // 800ms debounce per element
+                this.rotateElement(row, col);
+                this.elementRotationTimes.set(elementKey, now);
+                console.log('Rotation applied, element debounce timer reset');
+            } else {
+                console.log('Rotation blocked by element debounce timer:', now - lastElementRotationTime, 'ms remaining');
+            }
             
             // Update last tap info for potential double tap
             this.lastTapTime = now;
@@ -648,6 +671,9 @@ class TrackBuilder {
                 
                 // Touch events removed from cell level to prevent conflicts
                 // Now only element-level touch events are used
+                
+                // Disable touch events on cells to prevent conflicts
+                cell.style.touchAction = 'none';
                 
                 gridContainer.appendChild(cell);
                 this.grid[row][col] = cell;
@@ -1041,6 +1067,16 @@ class TrackBuilder {
             return;
         }
         
+        // Check if this element is currently being rotated
+        const elementKey = `${row},${col}`;
+        if (this.elementRotationTimes.has(elementKey)) {
+            const timeSinceLastRotation = Date.now() - this.elementRotationTimes.get(elementKey);
+            if (timeSinceLastRotation < 1000) { // 1 second lock
+                console.log('Rotation blocked - element is locked for:', 1000 - timeSinceLastRotation, 'ms');
+                return;
+            }
+        }
+        
         console.log('Current rotation:', elementData.rotation);
         
         // Always rotate clockwise in 90-degree increments
@@ -1055,8 +1091,11 @@ class TrackBuilder {
             console.log('Applied transform:', element.style.transform);
         }
         
-        // Update stored data
+        // Update stored data and set rotation lock
         this.elements.set(`${row},${col}`, elementData);
+        this.elementRotationTimes.set(elementKey, Date.now());
+        
+        console.log('Rotation completed and lock set');
     }
 
     clearGrid() {
