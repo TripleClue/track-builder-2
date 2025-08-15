@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Builder</title>
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+        </header>
+
+                <div class="main-content">
+            <div class="left-panel">
+                <div class="instructions">
+                    <h3>Instructions</h3>
+                    <ol>
+                        <li>Input grid dimensions and click "Create Grid"</li>
+                        <li>Drag track pieces to place or move them on the grid</li>
+                        <li>Left-click or tap to rotate </li>
+                        <li>Right-click or long press on mobile to delete</li>
+                        <li>Use "Fill Empty Spaces" to add blank pieces to all empty squares</li>
+                        <li>Save your track and print to play at home</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="center-panel">
+                <div class="grid-container">
+                    <div id="trackGrid"></div>
+                </div>
+            </div>
+            
+            <div class="right-panel">
+                <div class="controls">
+                    <div class="control-group">
+                        <div class="grid-size-inputs">
+                            <div class="input-columns">
+                                <div class="input-column">
+                                    <label for="gridWidth">Width:</label>
+                                    <input type="number" id="gridWidth" min="3" max="10" value="5" class="grid-input">
+                                </div>
+                                <div class="input-column">
+                                    <label for="gridHeight">Height:</label>
+                                    <input type="number" id="gridHeight" min="3" max="10" value="7" class="grid-input">
+                                </div>
+                            </div>
+
+                        </div>
+                        <button id="createGrid">Create Grid</button>
+                    </div>
+                </div>
+
+                <div class="toolbar">
+                    <h3>Track Elements</h3>
+                    <div class="element-toolbar">
+                        <div class="toolbar-element" draggable="true" data-element-type="start">
+                            <div class="element-preview start">
+                                <img src="elements/start.png" alt="Start" draggable="false" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                <div class="fallback-text" style="display: none; font-size: 16px; font-weight: bold; color: #333;">S</div>
+                            </div>
+                        </div>
+                        <div class="toolbar-element" draggable="true" data-element-type="straight">
+                            <div class="element-preview straight">
+                                <img src="elements/straight.png" alt="Straight" draggable="false" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                <div class="fallback-text" style="display: none; font-size: 16px; font-weight: bold; color: #333;">S</div>
+                            </div>
+                        </div>
+                        <div class="toolbar-element" draggable="true" data-element-type="corner">
+                            <div class="element-preview corner">
+                                <img src="elements/corner.png" alt="Corner" draggable="false" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                <div class="fallback-text" style="display: none; font-size: 16px; font-weight: bold; color: #333;">C</div>
+                            </div>
+                        </div>
+                        <div class="toolbar-element" draggable="true" data-element-type="squeeze">
+                            <div class="element-preview squeeze">
+                                <img src="elements/squeeze.png" alt="Squeeze" draggable="false" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                <div class="fallback-text" style="display: none; font-size: 16px; font-weight: bold; color: #333;">Q</div>
+                            </div>
+                        </div>
+                        <div class="toolbar-element" draggable="true" data-element-type="obstacles">
+                            <div class="element-preview obstacles">
+                                <img src="elements/obstacles.png" alt="Obstacles" draggable="false" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                <div class="fallback-text" style="display: none; font-size: 16px; font-weight: bold; color: #333;">O</div>
+                            </div>
+                        </div>
+                        <div class="toolbar-element" draggable="true" data-element-type="gap">
+                            <div class="element-preview gap">
+                                <img src="elements/gap.png" alt="Gap" draggable="false" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                <div class="fallback-text" style="display: none; font-size: 16px; font-weight: bold; color: #333;">G</div>
+                            </div>
+                        </div>
+                        <div class="toolbar-element" draggable="true" data-element-type="finish">
+                            <div class="element-preview finish">
+                                <img src="elements/finish.png" alt="Finish" draggable="false" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                <div class="fallback-text" style="display: none; font-size: 16px; font-weight: bold; color: #333;">F</div>
+                            </div>
+                        </div>
+                        <div class="toolbar-element" draggable="true" data-element-type="blank">
+                            <div class="element-preview blank">
+                                <img src="elements/blank.png" alt="Blank" draggable="false" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                <div class="fallback-text" style="display: none; font-size: 16px; font-weight: bold; color: #333;">B</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <div class="top-buttons">
+                            <button id="fillBlanks">Fill Empty Spaces</button>
+                            <button id="clearGrid">Clear Grid</button>
+                        </div>
+                        <button id="downloadPDF">Save Track</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 

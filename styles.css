@@ -1,0 +1,502 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #000000;
+    min-height: 100vh;
+    color: #000000;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+header {
+    margin-bottom: 20px;
+}
+
+.left-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.controls {
+    background: white;
+    padding: 15px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.grid-size-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+
+
+.control-group label {
+    font-weight: 600;
+    color: #555;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.control-group select,
+.control-group input {
+    padding: 8px 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    background: white;
+    cursor: pointer;
+}
+
+.input-columns {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    justify-content: center;
+}
+
+.input-column {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.grid-input {
+    width: 60px;
+    text-align: center;
+    cursor: text;
+    padding: 4px 6px;
+    font-size: 13px;
+}
+
+.grid-input:focus {
+    outline: none;
+    border-color: #2196F3;
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+}
+
+.control-group button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#createGrid {
+    background: #000000;
+    color: white;
+}
+
+#createGrid:hover {
+    background: #333333;
+    transform: translateY(-2px);
+}
+
+#addElement {
+    background: #2196F3;
+    color: white;
+}
+
+#addElement:hover {
+    background: #1976D2;
+    transform: translateY(-2px);
+}
+
+#downloadPDF {
+    background: #E14C23;
+    color: white;
+}
+
+#downloadPDF:hover {
+    background: #C73E1D;
+    transform: translateY(-2px);
+}
+
+#fillBlanks {
+    background: #000000;
+    color: white;
+}
+
+#fillBlanks:hover {
+    background: #333333;
+    transform: translateY(-2px);
+}
+
+#clearGrid {
+    background: #2196F3;
+    color: white;
+}
+
+#clearGrid:hover {
+    background: #1976D2;
+    transform: translateY(-2px);
+}
+
+.main-content {
+    display: grid;
+    grid-template-columns: 300px 1fr 280px;
+    gap: 30px;
+    align-items: start;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.center-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.right-panel {
+    display: flex;
+    flex-direction: column;
+}
+
+.grid-container {
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#trackGrid {
+    display: grid;
+    gap: 0;
+    background: transparent;
+    padding: 0;
+    border-radius: 10px;
+    width: fit-content;
+    height: fit-content;
+    grid-template-columns: repeat(auto-fit, 80px);
+}
+
+.grid-cell {
+    width: 80px;
+    height: 80px;
+    min-width: 80px;
+    min-height: 80px;
+    background: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+/* Add solid grid lines without interfering with elements */
+.grid-cell::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-right: 1px solid rgba(0, 0, 0, 0.08);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    border-left: 1px solid rgba(0, 0, 0, 0.08);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.grid-cell:hover {
+    background: #f8f8f8;
+    z-index: 1;
+}
+
+.grid-cell.has-element {
+    background: #e3f2fd;
+}
+
+
+
+.track-element {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.track-element img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+.toolbar {
+    background: white;
+    padding: 15px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.toolbar h3 {
+    text-align: center;
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 1.3rem;
+}
+
+.element-toolbar {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    justify-items: center;
+}
+
+.toolbar-element {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    cursor: grab;
+    transition: all 0.3s ease;
+    background: white;
+    width: 100%;
+    max-width: 70px;
+}
+
+.toolbar-element:hover {
+    border-color: #2196F3;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(33, 150, 243, 0.2);
+}
+
+.toolbar-element:active {
+    cursor: grabbing;
+    transform: translateY(0);
+}
+
+.toolbar-element.dragging {
+    opacity: 0.5;
+    transform: rotate(5deg);
+}
+
+.element-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 45px;
+    height: 45px;
+    border-radius: 0;
+    background: #f8f9fa;
+    overflow: hidden;
+}
+
+.element-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+.action-buttons {
+    margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.action-buttons button {
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.top-buttons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.action-buttons button:not(#downloadPDF) {
+    width: calc(50% - 5px);
+    padding: 8px 12px;
+    font-size: 13px;
+}
+
+#downloadPDF {
+    width: 100%;
+    padding: 12px;
+    font-size: 14px;
+}
+
+
+
+.instructions {
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    height: fit-content;
+}
+
+.instructions h3 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 1.3rem;
+}
+
+.instructions ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.instructions li {
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+    color: #666;
+    position: relative;
+    padding-left: 20px;
+}
+
+/* Remove custom bullets for ordered lists */
+.instructions ol {
+    list-style: decimal;
+    padding-left: 20px;
+}
+
+.instructions ol li {
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+    color: #666;
+    position: relative;
+    padding-left: 0;
+}
+
+.instructions li:last-child {
+    border-bottom: none;
+}
+
+.mobile-note {
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-weight: 600;
+    text-align: center;
+    border-left: 4px solid #2196F3;
+}
+
+/* Mobile touch improvements */
+@media (max-width: 768px) {
+    .toolbar-element {
+        min-height: 60px;
+        touch-action: manipulation;
+    }
+    
+    .toolbar-element:active {
+        transform: scale(0.95);
+        transition: transform 0.1s ease;
+    }
+    
+    .grid-cell {
+        touch-action: manipulation;
+    }
+    
+    .track-element {
+        touch-action: manipulation;
+    }
+    
+    /* Improve touch targets */
+    .action-buttons button {
+        min-height: 44px;
+        touch-action: manipulation;
+    }
+    
+    .control-group button {
+        min-height: 44px;
+        touch-action: manipulation;
+    }
+    
+    /* Prevent text selection on touch */
+    .toolbar-element,
+    .grid-cell,
+    .track-element {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+}
+
+/* Touch feedback styles */
+.toolbar-element.touch-active {
+    transform: scale(0.95);
+    opacity: 0.8;
+    transition: all 0.1s ease;
+}
+
+.grid-cell.touch-active {
+    background: #e3f2fd !important;
+    transform: scale(1.02);
+    transition: all 0.1s ease;
+}
+
+/* Long press indicator */
+.long-press-indicator {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(244, 67, 54, 0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    z-index: 1000;
+    pointer-events: none;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+    100% { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
+}
