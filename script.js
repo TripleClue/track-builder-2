@@ -21,6 +21,12 @@ class TrackBuilder {
         // Touch event processing flags
         this.touchProcessed = false;
         
+        // Double tap detection
+        this.lastTapTime = 0;
+        this.lastTapPosition = { x: 0, y: 0 };
+        this.doubleTapDelay = 300; // milliseconds
+        this.doubleTapDistance = 50; // pixels
+        
         this.initializeEventListeners();
         
         // Read initial values from HTML inputs
@@ -90,9 +96,8 @@ class TrackBuilder {
         // Add touch events to toolbar elements
         const toolbarElements = document.querySelectorAll('.toolbar-element');
         toolbarElements.forEach(element => {
-            element.addEventListener('touchstart', (e) => this.handleTouchStart(e, 'toolbar'));
-            element.addEventListener('touchmove', (e) => this.handleTouchMove(e));
-            element.addEventListener('touchend', (e) => this.handleTouchEnd(e));
+            element.addEventListener('touchstart', (e) => this.handleToolbarTouchStart(e));
+            element.addEventListener('touchend', (e) => this.handleToolbarTouchEnd(e));
         });
         
         // Prevent default touch behavior to avoid conflicts
@@ -120,6 +125,52 @@ class TrackBuilder {
         });
     }
 
+    handleToolbarTouchStart(e) {
+        e.preventDefault();
+        const elementType = e.currentTarget.dataset.elementType;
+        console.log('Toolbar touch start:', elementType);
+        
+        // Store the element type for placement
+        this.draggedElementType = elementType;
+        this.draggedElementSource = 'toolbar';
+        
+        // Visual feedback
+        e.currentTarget.style.opacity = '0.5';
+        e.currentTarget.style.transform = 'scale(0.95)';
+    }
+
+    handleToolbarTouchEnd(e) {
+        e.preventDefault();
+        const touch = e.changedTouches[0];
+        console.log('Toolbar touch end:', touch.clientX, touch.clientY);
+        
+        // Reset visual feedback
+        e.currentTarget.style.opacity = '1';
+        e.currentTarget.style.transform = 'scale(1)';
+        
+        // Find the cell under the touch point
+        const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+        const targetCell = this.findCellFromElement(elementBelow);
+        
+        if (targetCell && this.draggedElementType) {
+            const row = parseInt(targetCell.dataset.row);
+            const col = parseInt(targetCell.dataset.col);
+            
+            console.log('Placing element at:', row, col);
+            
+            // Check if target cell is already occupied
+            if (this.elements.has(`${row},${col}`)) {
+                alert('Cannot place element in an occupied cell. Please choose an empty cell.');
+            } else {
+                this.placeElement(row, col, this.draggedElementType);
+            }
+        }
+        
+        // Clean up
+        this.draggedElementType = null;
+        this.draggedElementSource = null;
+    }
+
     isMobileDevice() {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
                ('ontouchstart' in window) || 
@@ -142,93 +193,7 @@ class TrackBuilder {
         }
     }
 
-    handleTouchStart(e, source) {
-        e.preventDefault();
-        const touch = e.touches[0];
-        this.touchStartTime = Date.now();
-        this.touchStartPosition = { x: touch.clientX, y: touch.clientY };
-        this.isDragging = false;
-        this.touchProcessed = false; // Reset touch processed flag
-        
-        if (source === 'toolbar') {
-            const elementType = e.currentTarget.dataset.elementType;
-            this.draggedElementType = elementType;
-            this.draggedElementSource = 'toolbar';
-            this.draggedElementData = null;
-            
-            // Create visual feedback
-            e.currentTarget.style.opacity = '0.5';
-            e.currentTarget.style.transform = 'scale(0.95)';
-        }
-    }
-
-    handleTouchMove(e) {
-        if (!this.draggedElementType) return;
-        
-        e.preventDefault();
-        const touch = e.touches[0];
-        const deltaX = Math.abs(touch.clientX - this.touchStartPosition.x);
-        const deltaY = Math.abs(touch.clientY - this.touchStartPosition.y);
-        
-        // Start dragging after a small movement threshold
-        if (deltaX > 10 || deltaY > 10) {
-            this.isDragging = true;
-            
-            // Create drag preview if not exists
-            if (!this.draggedElement) {
-                this.createTouchDragPreview();
-            }
-            
-            // Update drag preview position
-            if (this.draggedElement) {
-                this.draggedElement.style.left = (touch.clientX - 40) + 'px';
-                this.draggedElement.style.top = (touch.clientY - 40) + 'px';
-            }
-        }
-    }
-
-    handleTouchEnd(e) {
-        if (!this.draggedElementType) return;
-        
-        e.preventDefault();
-        
-        // Reset toolbar element appearance
-        if (this.draggedElementSource === 'toolbar') {
-            const toolbarElement = e.currentTarget;
-            toolbarElement.style.opacity = '1';
-            toolbarElement.style.transform = 'scale(1)';
-        }
-        
-        if (this.isDragging) {
-            // Find the cell under the touch point
-            const touch = e.changedTouches[0];
-            const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-            const targetCell = this.findCellFromElement(elementBelow);
-            
-            if (targetCell) {
-                const row = parseInt(targetCell.dataset.row);
-                const col = parseInt(targetCell.dataset.col);
-                
-                if (this.draggedElementSource === 'toolbar') {
-                    // Check if target cell is already occupied
-                    if (this.elements.has(`${row},${col}`)) {
-                        alert('Cannot place element in an occupied cell. Please choose an empty cell.');
-                    } else {
-                        this.placeElement(row, col, this.draggedElementType);
-                    }
-                } else if (this.draggedElementSource === 'grid') {
-                    // Moving existing element
-                    const [, oldRow, oldCol] = this.draggedElementData.split(':');
-                    if (parseInt(oldRow) !== row || parseInt(oldCol) !== col) {
-                        this.moveElement(parseInt(oldRow), parseInt(oldCol), row, col, this.draggedElementType);
-                    }
-                }
-            }
-        }
-        
-        // Clean up
-        this.cleanupTouchDrag();
-    }
+    // Old touch handling methods removed - replaced with simpler toolbar and element handlers
 
     createTouchDragPreview() {
         this.draggedElement = document.createElement('div');
@@ -464,19 +429,19 @@ class TrackBuilder {
             }
         } else if (touchDuration < 500) {
             // Short touch - handle rotation or deletion
-            if (touchDuration > 300) {
-                // Long press - show delete button (mobile only)
-                console.log('Long press detected, showing delete button');
-                if (this.isMobileDevice()) {
-                    this.showDeleteButton(row, col);
-                } else {
-                    // Desktop behavior - immediate deletion
-                    this.deleteElement(row, col);
-                }
+            if (this.isMobileDevice()) {
+                // Mobile: check for double tap
+                this.handleMobileTap(row, col, touch);
             } else {
-                // Short tap - rotate
-                console.log('Short tap detected, rotating element');
-                this.rotateElement(row, col);
+                // Desktop: long press for deletion
+                if (touchDuration > 300) {
+                    console.log('Long press detected, deleting element');
+                    this.deleteElement(row, col);
+                } else {
+                    // Short tap - rotate
+                    console.log('Short tap detected, rotating element');
+                    this.rotateElement(row, col);
+                }
             }
         }
         
@@ -485,6 +450,39 @@ class TrackBuilder {
         
         // Clean up
         this.cleanupTouchDrag();
+    }
+
+    handleMobileTap(row, col, touch) {
+        const now = Date.now();
+        const distance = Math.sqrt(
+            Math.pow(touch.clientX - this.lastTapPosition.x, 2) + 
+            Math.pow(touch.clientY - this.lastTapPosition.y, 2)
+        );
+        
+        console.log('Mobile tap detected:', { 
+            row, col, 
+            timeSinceLastTap: now - this.lastTapTime, 
+            distance, 
+            isDoubleTap: (now - this.lastTapTime < this.doubleTapDelay) && (distance < this.doubleTapDistance)
+        });
+        
+        if (now - this.lastTapTime < this.doubleTapDelay && distance < this.doubleTapDistance) {
+            // Double tap detected - delete element
+            console.log('Double tap detected, deleting element');
+            this.deleteElement(row, col);
+            
+            // Reset double tap tracking
+            this.lastTapTime = 0;
+            this.lastTapPosition = { x: 0, y: 0 };
+        } else {
+            // Single tap - rotate element
+            console.log('Single tap detected, rotating element');
+            this.rotateElement(row, col);
+            
+            // Update last tap info for potential double tap
+            this.lastTapTime = now;
+            this.lastTapPosition = { x: touch.clientX, y: touch.clientY };
+        }
     }
 
     showLongPressIndicator(row, col) {
