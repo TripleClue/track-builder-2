@@ -14,6 +14,13 @@ class TrackBuilder {
         this.draggedElementSource = null; // 'toolbar' or 'grid'
         this.draggedElementData = null;
         
+        // Mobile rotation debounce
+        this.lastRotationTime = 0;
+        this.rotationDebounceDelay = 300; // milliseconds
+        
+        // Touch event processing flags
+        this.touchProcessed = false;
+        
         this.initializeEventListeners();
         
         // Read initial values from HTML inputs
@@ -132,6 +139,7 @@ class TrackBuilder {
         this.touchStartTime = Date.now();
         this.touchStartPosition = { x: touch.clientX, y: touch.clientY };
         this.isDragging = false;
+        this.touchProcessed = false; // Reset touch processed flag
         
         if (source === 'toolbar') {
             const elementType = e.currentTarget.dataset.elementType;
@@ -280,6 +288,7 @@ class TrackBuilder {
         this.draggedElementSource = null;
         this.draggedElementData = null;
         this.isDragging = false;
+        this.touchProcessed = false; // Reset touch processed flag
     }
 
     // Cell touch handling methods
@@ -287,6 +296,7 @@ class TrackBuilder {
         const touch = e.touches[0];
         this.touchStartTime = Date.now();
         this.touchStartPosition = { x: touch.clientX, y: touch.clientY };
+        this.touchProcessed = false; // Reset touch processed flag
         
         // Check if cell has an element
         const element = this.grid[row][col].querySelector('.track-element');
@@ -324,7 +334,7 @@ class TrackBuilder {
     }
 
     handleCellTouchEnd(e, row, col) {
-        if (!this.draggedElementType) return;
+        if (!this.draggedElementType || this.touchProcessed) return;
         
         const touch = e.changedTouches[0];
         const touchDuration = Date.now() - this.touchStartTime;
@@ -349,17 +359,22 @@ class TrackBuilder {
             if (element) {
                 // Check if it's a long press (for deletion) or short tap (for rotation)
                 if (touchDuration > 300) {
-                    // Long press - delete
-                    this.showLongPressIndicator(row, col);
-                    setTimeout(() => {
+                    // Long press - show delete button (mobile only)
+                    if (this.isMobileDevice()) {
+                        this.showDeleteButton(row, col);
+                    } else {
+                        // Desktop behavior - immediate deletion
                         this.deleteElement(row, col);
-                    }, 100);
+                    }
                 } else {
                     // Short tap - rotate
                     this.rotateElement(row, col);
                 }
             }
         }
+        
+        // Mark touch as processed to prevent multiple firings
+        this.touchProcessed = true;
         
         // Clean up
         this.cleanupTouchDrag();
@@ -370,6 +385,7 @@ class TrackBuilder {
         const touch = e.touches[0];
         this.touchStartTime = Date.now();
         this.touchStartPosition = { x: touch.clientX, y: touch.clientY };
+        this.touchProcessed = false; // Reset touch processed flag
         
         // Store element info for potential drag
         const element = e.currentTarget;
@@ -406,7 +422,7 @@ class TrackBuilder {
     }
 
     handleElementTouchEnd(e, row, col) {
-        if (!this.draggedElementType) return;
+        if (!this.draggedElementType || this.touchProcessed) return;
         
         const touch = e.changedTouches[0];
         const touchDuration = Date.now() - this.touchStartTime;
@@ -428,16 +444,21 @@ class TrackBuilder {
         } else if (touchDuration < 500) {
             // Short touch - handle rotation or deletion
             if (touchDuration > 300) {
-                // Long press - delete
-                this.showLongPressIndicator(row, col);
-                setTimeout(() => {
+                // Long press - show delete button (mobile only)
+                if (this.isMobileDevice()) {
+                    this.showDeleteButton(row, col);
+                } else {
+                    // Desktop behavior - immediate deletion
                     this.deleteElement(row, col);
-                }, 100);
+                }
             } else {
                 // Short tap - rotate
                 this.rotateElement(row, col);
             }
         }
+        
+        // Mark touch as processed to prevent multiple firings
+        this.touchProcessed = true;
         
         // Clean up
         this.cleanupTouchDrag();
@@ -457,6 +478,76 @@ class TrackBuilder {
                 indicator.remove();
             }
         }, 1000);
+    }
+
+    showDeleteButton(row, col) {
+        const cell = this.grid[row][col];
+        
+        // Remove any existing delete button
+        const existingButton = cell.querySelector('.mobile-delete-button');
+        if (existingButton) {
+            existingButton.remove();
+            return;
+        }
+        
+        // Create delete button
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'mobile-delete-button';
+        deleteButton.innerHTML = '×';
+        deleteButton.style.cssText = `
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            animation: popIn 0.2s ease-out;
+        `;
+        
+        // Add hover effect for desktop
+        deleteButton.addEventListener('mouseenter', () => {
+            deleteButton.style.background = '#d32f2f';
+            deleteButton.style.transform = 'scale(1.1)';
+        });
+        
+        deleteButton.addEventListener('mouseleave', () => {
+            deleteButton.style.background = '#f44336';
+            deleteButton.style.transform = 'scale(1)';
+        });
+        
+        // Add click event to delete
+        deleteButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.deleteElement(row, col);
+        });
+        
+        // Add touch event to delete (for mobile)
+        deleteButton.addEventListener('touchend', (e) => {
+            e.stopPropagation();
+            this.deleteElement(row, col);
+        });
+        
+        // Position the button relative to the cell
+        cell.style.position = 'relative';
+        cell.appendChild(deleteButton);
+        
+        // Auto-hide the button after 5 seconds
+        setTimeout(() => {
+            if (deleteButton.parentNode) {
+                deleteButton.remove();
+            }
+        }, 5000);
     }
 
     createGrid() {
@@ -741,12 +832,16 @@ class TrackBuilder {
         const cell = this.grid[row][col];
         const element = cell.querySelector('.track-element');
         const deleteButton = cell.querySelector('.delete-button');
+        const mobileDeleteButton = cell.querySelector('.mobile-delete-button');
         
         if (element) {
             element.remove();
         }
         if (deleteButton) {
             deleteButton.remove();
+        }
+        if (mobileDeleteButton) {
+            mobileDeleteButton.remove();
         }
         
         cell.classList.remove('has-element');
