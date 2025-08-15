@@ -121,9 +121,18 @@ class TrackBuilder {
     }
 
     isMobileDevice() {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
                ('ontouchstart' in window) || 
                (navigator.maxTouchPoints > 0);
+        
+        console.log('Mobile device check:', { 
+            userAgent: navigator.userAgent,
+            hasTouchStart: 'ontouchstart' in window,
+            maxTouchPoints: navigator.maxTouchPoints,
+            isMobile: isMobile
+        });
+        
+        return isMobile;
     }
 
     showMobileInstructions() {
@@ -382,6 +391,7 @@ class TrackBuilder {
 
     // Element touch handling methods for placed elements
     handleElementTouchStart(e, row, col) {
+        console.log('Element touch start:', { row, col });
         const touch = e.touches[0];
         this.touchStartTime = Date.now();
         this.touchStartPosition = { x: touch.clientX, y: touch.clientY };
@@ -392,6 +402,12 @@ class TrackBuilder {
         this.draggedElementType = element.classList[1];
         this.draggedElementSource = 'grid';
         this.draggedElementData = `move:${row}:${col}:${this.draggedElementType}`;
+        
+        console.log('Touch start initialized:', { 
+            draggedElementType: this.draggedElementType, 
+            draggedElementSource: this.draggedElementSource,
+            touchProcessed: this.touchProcessed 
+        });
     }
 
     handleElementTouchMove(e, row, col) {
@@ -422,10 +438,15 @@ class TrackBuilder {
     }
 
     handleElementTouchEnd(e, row, col) {
-        if (!this.draggedElementType || this.touchProcessed) return;
+        if (!this.draggedElementType || this.touchProcessed) {
+            console.log('Touch event blocked:', { draggedElementType: this.draggedElementType, touchProcessed: this.touchProcessed });
+            return;
+        }
         
         const touch = e.changedTouches[0];
         const touchDuration = Date.now() - this.touchStartTime;
+        
+        console.log('Element touch end:', { row, col, touchDuration, isDragging: this.isDragging });
         
         if (this.isDragging) {
             // Handle drag and drop
@@ -445,6 +466,7 @@ class TrackBuilder {
             // Short touch - handle rotation or deletion
             if (touchDuration > 300) {
                 // Long press - show delete button (mobile only)
+                console.log('Long press detected, showing delete button');
                 if (this.isMobileDevice()) {
                     this.showDeleteButton(row, col);
                 } else {
@@ -453,6 +475,7 @@ class TrackBuilder {
                 }
             } else {
                 // Short tap - rotate
+                console.log('Short tap detected, rotating element');
                 this.rotateElement(row, col);
             }
         }
@@ -481,14 +504,18 @@ class TrackBuilder {
     }
 
     showDeleteButton(row, col) {
+        console.log('Showing delete button for:', { row, col });
         const cell = this.grid[row][col];
         
         // Remove any existing delete button
         const existingButton = cell.querySelector('.mobile-delete-button');
         if (existingButton) {
+            console.log('Removing existing delete button');
             existingButton.remove();
             return;
         }
+        
+        console.log('Creating new delete button');
         
         // Create delete button
         const deleteButton = document.createElement('button');
@@ -529,12 +556,14 @@ class TrackBuilder {
         // Add click event to delete
         deleteButton.addEventListener('click', (e) => {
             e.stopPropagation();
+            console.log('Delete button clicked');
             this.deleteElement(row, col);
         });
         
         // Add touch event to delete (for mobile)
         deleteButton.addEventListener('touchend', (e) => {
             e.stopPropagation();
+            console.log('Delete button touched');
             this.deleteElement(row, col);
         });
         
@@ -542,9 +571,12 @@ class TrackBuilder {
         cell.style.position = 'relative';
         cell.appendChild(deleteButton);
         
+        console.log('Delete button added to cell');
+        
         // Auto-hide the button after 5 seconds
         setTimeout(() => {
             if (deleteButton.parentNode) {
+                console.log('Auto-hiding delete button');
                 deleteButton.remove();
             }
         }, 5000);
@@ -616,10 +648,8 @@ class TrackBuilder {
                     this.deleteElement(row, col);
                 });
                 
-                // Add touch events for mobile
-                cell.addEventListener('touchstart', (e) => this.handleCellTouchStart(e, row, col));
-                cell.addEventListener('touchmove', (e) => this.handleCellTouchMove(e, row, col));
-                cell.addEventListener('touchend', (e) => this.handleCellTouchEnd(e, row, col));
+                // Touch events removed from cell level to prevent conflicts
+                // Now only element-level touch events are used
                 
                 gridContainer.appendChild(cell);
                 this.grid[row][col] = cell;
@@ -1006,16 +1036,25 @@ class TrackBuilder {
     }
 
     rotateElement(row, col) {
+        console.log('Rotating element at:', { row, col });
         const elementData = this.elements.get(`${row},${col}`);
-        if (!elementData) return;
+        if (!elementData) {
+            console.log('No element data found');
+            return;
+        }
+        
+        console.log('Current rotation:', elementData.rotation);
         
         // Always rotate clockwise in 90-degree increments
         elementData.rotation += 90;
+        
+        console.log('New rotation:', elementData.rotation);
         
         const cell = this.grid[row][col];
         const element = cell.querySelector('.track-element');
         if (element) {
             element.style.transform = `rotate(${elementData.rotation}deg)`;
+            console.log('Applied transform:', element.style.transform);
         }
         
         // Update stored data
