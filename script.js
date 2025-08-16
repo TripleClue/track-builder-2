@@ -90,6 +90,7 @@ class TrackBuilder {
         const toolbarElements = document.querySelectorAll('.toolbar-element');
         toolbarElements.forEach(element => {
             element.addEventListener('touchstart', (e) => this.handleToolbarTouchStart(e));
+            element.addEventListener('touchmove', (e) => this.handleToolbarTouchMove(e));
             element.addEventListener('touchend', (e) => this.handleToolbarTouchEnd(e));
         });
         
@@ -130,6 +131,9 @@ class TrackBuilder {
         // Visual feedback
         e.currentTarget.style.opacity = '0.5';
         e.currentTarget.style.transform = 'scale(0.95)';
+        
+        // Create drag preview
+        this.createToolbarDragPreview(elementType);
     }
 
     handleToolbarTouchEnd(e) {
@@ -162,6 +166,17 @@ class TrackBuilder {
         // Clean up
         this.draggedElementType = null;
         this.draggedElementSource = null;
+        
+        // Remove drag preview
+        this.removeToolbarDragPreview();
+    }
+
+    handleToolbarTouchMove(e) {
+        if (this.toolbarDragPreview) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            this.updateToolbarDragPreviewPosition(touch);
+        }
     }
 
     isMobileDevice() {
@@ -390,6 +405,59 @@ class TrackBuilder {
     }
 
     // showDeleteButton method removed - not needed for simple double-tap deletion
+
+    createToolbarDragPreview(elementType) {
+        // Remove any existing preview
+        this.removeToolbarDragPreview();
+        
+        // Create preview element
+        this.toolbarDragPreview = document.createElement('div');
+        this.toolbarDragPreview.style.cssText = `
+            position: fixed;
+            width: 80px;
+            height: 80px;
+            background: white;
+            border: 2px solid #2196F3;
+            border-radius: 8px;
+            z-index: 10000;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            opacity: 0.8;
+        `;
+        
+        // Add image or text to preview
+        const img = document.createElement('img');
+        img.src = `elements/${elementType}.png`;
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'contain';
+        img.onerror = () => {
+            this.toolbarDragPreview.textContent = elementType.charAt(0).toUpperCase();
+            this.toolbarDragPreview.style.fontSize = '24px';
+            this.toolbarDragPreview.style.fontWeight = 'bold';
+            this.toolbarDragPreview.style.color = '#333';
+        };
+        this.toolbarDragPreview.appendChild(img);
+        
+        document.body.appendChild(this.toolbarDragPreview);
+    }
+
+    removeToolbarDragPreview() {
+        if (this.toolbarDragPreview && this.toolbarDragPreview.parentNode) {
+            this.toolbarDragPreview.parentNode.removeChild(this.toolbarDragPreview);
+            this.toolbarDragPreview = null;
+        }
+    }
+
+    updateToolbarDragPreviewPosition(touch) {
+        if (this.toolbarDragPreview) {
+            this.toolbarDragPreview.style.left = (touch.clientX - 40) + 'px';
+            this.toolbarDragPreview.style.top = (touch.clientY - 40) + 'px';
+        }
+    }
 
     createGrid() {
         const gridContainer = document.getElementById('trackGrid');
